@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoxelCraft 3D - Modern Voxel Studio & Variable Palette Engine</title>
+  <meta name="description" content="A state-of-the-art 3D voxel builder featuring dynamic variable color palettes, symmetry modeling, lighting controls, and multi-format 3D export.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Three.js & OrbitControls via CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="app-container">
+    <!-- 3D Canvas Area -->
+    <div id="canvas-container">
+      <canvas id="voxel-canvas"></canvas>
+    </div>
+
+    <!-- Top Navigation & Branding Bar -->
+    <header id="top-nav" class="glass-panel">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="logo-title">VOXEL<span class="accent">CRAFT</span></span>
+          <span class="logo-subtitle">STUDIO 3D</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls (Undo, Redo, Clear, Symmetry, Audio) -->
+      <div class="top-center-actions">
+        <button id="btn-undo" class="nav-btn tooltip-trigger" data-tooltip="Undo (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        </button>
+        <button id="btn-redo" class="nav-btn tooltip-trigger" data-tooltip="Redo (Ctrl+Y)" disabled>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
+        </button>
+        <div class="nav-divider"></div>
+
+        <!-- Symmetry Mode Selector -->
+        <div class="symmetry-selector tooltip-trigger" data-tooltip="Mirror Symmetry Mode">
+          <span class="selector-label">Symmetry:</span>
+          <div class="pill-group" id="symmetry-pills">
+            <button class="pill active" data-sym="none">Off</button>
+            <button class="pill" data-sym="x">X</button>
+            <button class="pill" data-sym="z">Z</button>
+            <button class="pill" data-sym="xz">X+Z</button>
+          </div>
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <!-- Audio FX Toggle -->
+        <button id="btn-audio-toggle" class="nav-btn active tooltip-trigger" data-tooltip="Toggle Audio Feedback">
+          <svg class="audio-on" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          <svg class="audio-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        </button>
+      </div>
+
+      <!-- Top Right Actions: Presets, Export, Shortcuts, Settings -->
+      <div class="top-right-actions">
+        <!-- Preset Models Dropdown -->
+        <div class="dropdown-wrapper">
+          <button id="btn-sample-models" class="btn-secondary tooltip-trigger" data-tooltip="Load Sample Models">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span>Demos</span>
+          </button>
+          <div id="demos-dropdown" class="dropdown-menu glass-panel">
+            <div class="dropdown-header">Load Demo Build</div>
+            <button class="dropdown-item" data-demo="robot">🤖 Cyber Mech Robot</button>
+            <button class="dropdown-item" data-demo="castle">🏰 Floating Sky Castle</button>
+            <button class="dropdown-item" data-demo="sword">⚔️ Legendary Pixel Sword</button>
+            <button class="dropdown-item" data-demo="treehouse">🏡 Cozy Voxel Cottage</button>
+            <button class="dropdown-item" data-demo="car">🏎️ Retro Arcade Racer</button>
+          </div>
+        </div>
+
+        <button id="btn-export-modal" class="btn-primary tooltip-trigger" data-tooltip="Save / Export 3D Model">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Export</span>
+        </button>
+
+        <button id="btn-shortcuts" class="nav-btn tooltip-trigger" data-tooltip="Keybindings Guide (?)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Left Floating Tool Dock -->
+    <aside id="tool-dock" class="glass-panel">
+      <div class="tool-group">
+        <span class="tool-section-label">TOOLS</span>
+        
+        <button id="tool-place" class="tool-btn active tooltip-trigger" data-tooltip="Place Voxel (B / 1)" data-tool="place">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="12" y1="8" x2="12" y2="16"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+          </svg>
+          <span class="tool-name">Build</span>
+          <span class="shortcut-tag">B</span>
+        </button>
+
+        <button id="tool-paint" class="tool-btn tooltip-trigger" data-tooltip="Paint / Recolor Voxel (P / 2)" data-tool="paint">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+            <path d="M2 2l7.586 7.586"></path>
+            <circle cx="11" cy="11" r="2"></circle>
+          </svg>
+          <span class="tool-name">Paint</span>
+          <span class="shortcut-tag">P</span>
+        </button>
+
+        <button id="tool-erase" class="tool-btn tooltip-trigger" data-tooltip="Erase Voxel (E / 3)" data-tool="erase">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2C14 1 16 1 17 2L21 6C22 7 22 9 21 10L11 20"></path>
+            <line x1="6" y1="11" x2="15" y2="2"></line>
+          </svg>
+          <span class="tool-name">Erase</span>
+          <span class="shortcut-tag">E</span>
+        </button>
+
+        <button id="tool-picker" class="tool-btn tooltip-trigger" data-tooltip="Eyedropper / Color Pick (I / 4)" data-tool="picker">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m2 22 1-1h3l9-9M13 5l2-2 4 4-2 2M10 8l6 6"></path>
+          </svg>
+          <span class="tool-name">Picker</span>
+          <span class="shortcut-tag">I</span>
+        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- Brush Size / Extrude Shapes -->
+      <div class="tool-group">
+        <span class="tool-section-label">BRUSH SIZE</span>
+        <div class="brush-size-picker" id="brush-size-options">
+          <button class="brush-btn active tooltip-trigger" data-size="1" data-tooltip="1x1 Brush">1x</button>
+          <button class="brush-btn tooltip-trigger" data-size="2" data-tooltip="2x2 Brush">2x</button>
+          <button class="brush-btn tooltip-trigger" data-size="3" data-tooltip="3x3 Brush">3x</button>
+        </div>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- Quick Primitives & Actions -->
+      <div class="tool-group">
+        <span class="tool-section-label">ACTIONS</span>
+        <button id="btn-fill-floor" class="action-btn tooltip-trigger" data-tooltip="Generate Base Floor (12x12)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 17l10 5 10-5M2 12l10 5 10-5M2 7l10 5 10-5"/></svg>
+          <span>Fill Base</span>
+        </button>
+        <button id="btn-clear-canvas" class="action-btn btn-danger tooltip-trigger" data-tooltip="Clear All Voxels">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>Clear</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Environment & Camera Settings Panel -->
+    <aside id="settings-dock" class="glass-panel">
+      <div class="settings-header">
+        <span class="panel-title">VIEWPORT & ENV</span>
+        <button id="btn-toggle-settings" class="icon-toggle-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <div class="settings-content">
+        <!-- Camera View Presets -->
+        <div class="setting-item">
+          <label class="setting-label">Camera Angle</label>
+          <div class="camera-angles-grid">
+            <button class="cam-preset-btn" data-cam="iso">Iso 3D</button>
+            <button class="cam-preset-btn" data-cam="top">Top</button>
+            <button class="cam-preset-btn" data-cam="front">Front</button>
+            <button class="cam-preset-btn" data-cam="side">Side</button>
+          </div>
+        </div>
+
+        <!-- Turntable Auto Rotate -->
+        <div class="setting-item toggle-row">
+          <label class="setting-label" for="toggle-autorotate">Auto-Rotate Turntable</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-autorotate">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Environment Theme Backdrop -->
+        <div class="setting-item">
+          <label class="setting-label">Environment Backdrop</label>
+          <select id="select-environment" class="styled-select">
+            <option value="cyberpunk">Cyberpunk Studio (Dark)</option>
+            <option value="minimalist">Obsidian Void</option>
+            <option value="sunset">Warm Sunset Glow</option>
+            <option value="pastel">Pastel Sky</option>
+            <option value="clean">Minimal Clean White</option>
+          </select>
+        </div>
+
+        <!-- Grid Lines Toggle -->
+        <div class="setting-item toggle-row">
+          <label class="setting-label" for="toggle-grid">Show Grid & Plane</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-grid" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Shadows Toggle -->
+        <div class="setting-item toggle-row">
+          <label class="setting-label" for="toggle-shadows">Soft Directional Shadows</label>
+          <label class="switch">
+            <input type="checkbox" id="toggle-shadows" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <!-- Grid Size Slider -->
+        <div class="setting-item">
+          <div class="slider-header">
+            <label class="setting-label" for="slider-grid-size">Grid Plane Size</label>
+            <span id="grid-size-display" class="slider-value">20 x 20</span>
+          </div>
+          <input type="range" id="slider-grid-size" min="10" max="40" step="2" value="20" class="styled-range">
+        </div>
+
+        <!-- Quick Snapshot -->
+        <div class="setting-item pt-1">
+          <button id="btn-quick-snapshot" class="btn-outline w-full">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Take PNG Snapshot</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Bottom Center: Variable Color Palette Dock -->
+    <div id="palette-dock-wrapper">
+      <div id="palette-dock" class="glass-panel">
+        <div class="palette-top-bar">
+          <!-- Palette Preset Selector -->
+          <div class="palette-preset-selector">
+            <span class="palette-label">PALETTE:</span>
+            <select id="palette-select" class="styled-select palette-dropdown">
+              <option value="cyberpunk">Cyber Neon</option>
+              <option value="nature">Earth & Nature</option>
+              <option value="pastel">Pastel Dream</option>
+              <option value="pico8">Retro Pico-8 (16 Colors)</option>
+              <option value="magma">Magma & Ember</option>
+              <option value="synthwave">Synthwave 80s</option>
+              <option value="monochrome">Monochrome & Gold</option>
+              <option value="custom">★ Custom User Palette</option>
+            </select>
+          </div>
+
+          <!-- Color Customizer Trigger & Current Color Preview -->
+          <div class="active-color-badge tooltip-trigger" data-tooltip="Click to customize active color">
+            <input type="color" id="native-color-picker" value="#38bdf8">
+            <div id="active-color-swatch" class="active-swatch-box" style="background-color: #38bdf8;"></div>
+            <div class="active-color-info">
+              <span id="active-color-hex" class="active-hex">#38BDF8</span>
+              <span class="active-hint">Active Color</span>
+            </div>
+          </div>
+
+          <!-- Palette Control Buttons -->
+          <div class="palette-actions">
+            <button id="btn-add-color" class="palette-tool-btn tooltip-trigger" data-tooltip="Add current color to palette">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <span>Add Swatch</span>
+            </button>
+            <button id="btn-edit-palette-name" class="palette-tool-btn tooltip-trigger" data-tooltip="Save Palette As Custom">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span>Save As...</span>
+            </button>
+            <button id="btn-reset-palette" class="palette-tool-btn tooltip-trigger" data-tooltip="Reset Palette to defaults">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Color Swatches Grid -->
+        <div class="swatches-container">
+          <div id="swatches-grid" class="swatches-grid">
+            <!-- Dynamically populated via JS -->
+          </div>
+        </div>
+
+        <!-- Recent Colors History Bar -->
+        <div class="recent-colors-bar">
+          <span class="recent-label">Recent:</span>
+          <div id="recent-colors-list" class="recent-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Left HUD: Voxel Stats & Cursor Position -->
+    <div id="stats-hud" class="glass-panel">
+      <div class="stat-badge">
+        <span class="stat-label">Voxels:</span>
+        <span id="stat-voxel-count" class="stat-value">0</span>
+      </div>
+      <div class="stat-badge">
+        <span class="stat-label">Cursor:</span>
+        <span id="stat-cursor-coord" class="stat-value">X: 0, Y: 0, Z: 0</span>
+      </div>
+      <div class="stat-badge">
+        <span class="stat-label">Tool:</span>
+        <span id="stat-current-tool" class="stat-value accent-text">Build (B)</span>
+      </div>
+    </div>
+
+    <!-- Modals & Overlays -->
+    <!-- 1. Export / Save Modal -->
+    <div id="modal-export" class="modal-backdrop">
+      <div class="modal-content glass-panel">
+        <div class="modal-header">
+          <h2 class="modal-title">Export & Save Model</h2>
+          <button class="modal-close" id="btn-close-export">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">Choose your preferred export format for your 3D voxel creation.</p>
+          
+          <div class="export-options-grid">
+            <!-- 3D OBJ Export -->
+            <div class="export-card" id="card-export-obj">
+              <div class="export-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <div class="export-card-info">
+                <h3>Wavefront .OBJ (Standard 3D)</h3>
+                <p>Universal 3D format with vertex colors. Compatible with Blender, Maya, Unity, Unreal.</p>
+              </div>
+              <button id="btn-download-obj" class="btn-primary w-full">Download .OBJ</button>
+            </div>
+
+            <!-- JSON Project Save/Load -->
+            <div class="export-card">
+              <div class="export-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="export-card-info">
+                <h3>VoxelCraft Project (.JSON)</h3>
+                <p>Preserves all voxel coordinates, colors, and active custom palettes for future editing.</p>
+              </div>
+              <div class="btn-row">
+                <button id="btn-download-json" class="btn-primary">Save JSON</button>
+                <label class="btn-secondary file-upload-label">
+                  Load JSON
+                  <input type="file" id="input-load-json" accept=".json" style="display:none;">
+                </label>
+              </div>
+            </div>
+
+            <!-- High Res PNG Snapshot -->
+            <div class="export-card">
+              <div class="export-card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <div class="export-card-info">
+                <h3>High-Res Screenshot (.PNG)</h3>
+                <p>Crisp anti-aliased render of your model with clean backdrop.</p>
+              </div>
+              <button id="btn-download-png" class="btn-secondary w-full">Download PNG</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Shortcuts / Help Modal -->
+    <div id="modal-shortcuts" class="modal-backdrop">
+      <div class="modal-content glass-panel">
+        <div class="modal-header">
+          <h2 class="modal-title">Keyboard Shortcuts & Controls</h2>
+          <button class="modal-close" id="btn-close-shortcuts">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="shortcuts-table">
+            <div class="shortcut-row"><span class="key-badge">Left Click</span><span>Place Voxel (in Build mode)</span></div>
+            <div class="shortcut-row"><span class="key-badge">Right Click / Shift + Click</span><span>Quick Erase Voxel</span></div>
+            <div class="shortcut-row"><span class="key-badge">Right Drag / Middle Drag</span><span>Orbit / Rotate 3D Camera</span></div>
+            <div class="shortcut-row"><span class="key-badge">Shift + Right Drag</span><span>Pan 3D Camera</span></div>
+            <div class="shortcut-row"><span class="key-badge">Mouse Scroll</span><span>Zoom In / Out</span></div>
+            <div class="shortcut-row"><span class="key-badge">B / 1</span><span>Build / Place Tool</span></div>
+            <div class="shortcut-row"><span class="key-badge">P / 2</span><span>Paint / Recolor Tool</span></div>
+            <div class="shortcut-row"><span class="key-badge">E / 3</span><span>Erase Tool</span></div>
+            <div class="shortcut-row"><span class="key-badge">I / 4</span><span>Eyedropper Color Picker Tool</span></div>
+            <div class="shortcut-row"><span class="key-badge">Ctrl + Z</span><span>Undo Last Action</span></div>
+            <div class="shortcut-row"><span class="key-badge">Ctrl + Y</span><span>Redo Action</span></div>
+            <div class="shortcut-row"><span class="key-badge">G</span><span>Toggle Grid Visibility</span></div>
+            <div class="shortcut-row"><span class="key-badge">Space</span><span>Toggle Turntable Auto-Rotate</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Overlay -->
+    <div id="toast" class="toast">Action notification</div>
+  </div>
+
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
